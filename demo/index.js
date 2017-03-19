@@ -1,6 +1,6 @@
 import './index.scss';
-import ImagePreview from '../src/image-preview';
+import PreviewImage from '../src/preview-image';
 
-let imagePreview = new ImagePreview(document.getElementsByClassName('app')[0], {
+let previewImage = new PreviewImage(document.getElementsByClassName('app')[0], {
   maxZoom: 5
 });

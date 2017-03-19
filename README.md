@@ -12,8 +12,8 @@
 
 ## 使用
 ```javascript
-  var ImagePreview = require("image-preview");
-  var imagePreview = new ImagePreview( element, {
+  var PreviewImage = require("preview-image");
+  var previewImage = new PreviewImage( element, {
     imageSrc: 'http://xxx.com/xxx.png', // 图片地址
     rotatable: false, // 是否开启旋转
     doubleZoom: 2, // 双击缩放
@@ -24,7 +24,7 @@
     soft: true // 边界是否开启过渡动画
   });
   
-  imagePreview.start();
+  previewImage.start();
 ```
 
 ## API

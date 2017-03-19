@@ -15,9 +15,9 @@ module.exports = {
 	},
 
 	output: {
-		filename: 'image-preview.js',
+		filename: 'preview-image.js',
 		path    : LIB_PATH,
-		library : 'ImagePreview',
+		library : 'PreviewImage',
 		libraryTarget :  'umd',
 		umdNamedDefine: true
 	},

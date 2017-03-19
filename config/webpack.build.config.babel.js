@@ -11,7 +11,7 @@ let LIB_PATH  = path.resolve('lib');
 
 module.exports = {
 	entry: {
-		index: path.resolve('src/index.js')
+		index: path.resolve('src/preview-image.js')
 	},
 
 	output: {

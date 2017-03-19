@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/wulunyi/image-preview.git"
+    "url": "git+https://github.com/wulunyi/preview-image.git"
   },
   "keywords": [
     "canvas",
@@ -20,9 +20,9 @@
   "author": "wulunyi",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/wulunyi/image-preview/issues"
+    "url": "https://github.com/wulunyi/preview-image/issues"
   },
-  "homepage": "https://github.com/wulunyi/image-preview#readme",
+  "homepage": "https://github.com/wulunyi/preview-image#readme",
   "dependencies": {
     "alloyfinger": "^0.1.6",
     "autoprefixer": "^6.7.7",

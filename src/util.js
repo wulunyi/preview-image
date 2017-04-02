@@ -7,8 +7,8 @@
  * @param o {object}
  * @returns {boolean}
  */
-function isDom(o){
-  if(typeof HTMLElement === 'object'){
+function isDom(o) {
+  if (typeof HTMLElement === 'object') {
     return o instanceof HTMLElement;
   }
 
@@ -20,12 +20,12 @@ function isDom(o){
  * @param {HTMLElement} element 
  * @param {object} style 
  */
-function setStyle(element, style){
-  if(typeof style !== 'object'){
+function setStyle(element, style) {
+  if (typeof style !== 'object') {
     return;
   }
 
-  for(let key in style){
+  for (let key in style) {
     element.style[key] = style[key];
   }
 }
@@ -35,29 +35,116 @@ function setStyle(element, style){
  * @param {string} src 
  * @returns {object} pullImage
  */
-function pullImage(src){
+function pullImage(src) {
   let imgDom = document.createElement('img');
 
-  imgDom.addEventListener('load', (ev)=>{
-    pullImage.AFTER_HOOK && pullImage.AFTER_HOOK(null, imgDom);
-    
-    pullImage.AFTER_HOOK = null;
-  });
+  let sussFn = (err, imgDom) => {
+    this.AFTER_HOOK && this.AFTER_HOOK(null, imgDom);
+    this.AFTER_HOOK = null;
+  }
 
-  imgDom.addEventListener('error', (ev)=>{
+  let errFn = () => {
     let err = new Error('图片加载失败');
 
-    pullImage.AFTER_HOOK && pullImage.AFTER_HOOK(err, imgDom);
-    pullImage.AFTER_HOOK = null;
+    this.AFTER_HOOK && this.AFTER_HOOK(err, imgDom);
+    this.AFTER_HOOK = null;
+  }
+
+  imgDom.addEventListener('load', (ev) => {
+    sussFn(null, imgDom);
+  });
+
+  imgDom.addEventListener('error', (ev) => {
+    errFn();
   });
 
   imgDom.src = src;
 
-  return pullImage;
+  // 从缓存中取图片的时候
+  if (imgDom.complete) {
+    sussFn(null, imgDom);
+  }
+
+  return this;
 }
 
-pullImage.after = function(fn){
-  pullImage.AFTER_HOOK = fn;
+pullImage.prototype.after = function (fn) {
+  this.AFTER_HOOK = fn;
 }
 
-export {isDom, setStyle, pullImage};
+function getSize(dom) {
+  let wpx = dom.style.width;
+  let hpx = dom.style.height;
+  let boundData = dom.getBoundingClientRect();
+  let w = boundData.width;
+  let h = boundData.height;
+
+  if (wpx) {
+    w = wpx.slice(0, -2);
+  }
+
+  if (hpx) {
+    h = hpx.slice(0, -2);
+  }
+
+  return {
+    w: +w,
+    h: +h
+  }
+}
+
+/**
+ * @description 创建元素
+ * @param {*} tag 
+ * @param {*} style 
+ * @param {*} child 
+ */
+function createElement(tag, style, child) {
+  let dom = document.createElement(tag);
+  style && setStyle(dom, style);
+  child && isDom(child) && dom.appendChild(child);
+
+  return dom;
+}
+
+/**
+ * @description 获取离屏canvas
+ * @param params {Object} {img, sw, sh, cw, ch, rotate}
+ * @return {Element}
+ */
+function getOffCanvas(params) {
+  let {
+    img,
+    sw,
+    sh,
+    cw,
+    ch,
+    rotate
+  } = params;
+  let canvas = document.createElement('canvas');
+  let ctx = canvas.getContext('2d');
+  
+  canvas.width = cw;
+  canvas.height = ch;
+  
+  ctx.translate(cw / 2, ch / 2);
+  ctx.rotate(rotate * Math.PI / 180);
+
+  ctx.drawImage(img, -sw / 2, -sh / 2, sw, sh);
+
+  return canvas;
+}
+
+function toFixed(num) {
+	return Math.floor(num * 100) / 100;
+}
+
+export {
+  isDom,
+  setStyle,
+  pullImage,
+  getSize,
+  createElement,
+  getOffCanvas,
+  toFixed
+};

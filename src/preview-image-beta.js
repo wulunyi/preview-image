@@ -2,9 +2,9 @@
  * @description 图片预览组件
  */
 
-import * as util from './util';
-import * as BaseMath from './base-math';
 import hammer from 'hammerjs';
+import * as CoordMath from './coord-math';
+import * as util from './util';
 import './animation';
 
 export default class ImagePreview {
@@ -29,17 +29,16 @@ export default class ImagePreview {
 
     // 事件配置选项
     this.events = {
-      // 'tap': this.tap.bind(this),
+      'tap': this._tap.bind(this),
       'doubletap': this._doubleTap.bind(this),
+
       'pinchstart': this._pinchStart.bind(this),
       'pinchmove': this._pinchMove.bind(this),
       'pinchend': this._pinchEnd.bind(this),
+
       'panstart': this._panStart.bind(this),
       'panmove': this._panMove.bind(this),
-      'panend': this._panEnd.bind(this),
-      // 'rotatestart': this.rotateStart.bind(this),
-      // 'rotatemove': this.rotateMove.bind(this),
-      // 'rotateend': this.rotateEnd.bind(this)
+      'panend': this._panEnd.bind(this)
     };
 
     // 初始化
@@ -47,7 +46,22 @@ export default class ImagePreview {
   }
 
   /**
-   * @description 存上下文 dom
+   * @description 图片绘制角度
+   */
+  get angle() {
+    return this._angle || 0;
+  }
+
+  set angle(deg) {
+    if (deg % 90 !== 0) {
+      this._angle = 0
+    } else {
+      this._angle = deg % 360
+    }
+  }
+
+  /**
+   * @description 上下文 dom
    */
   get context() {
     return this._context;
@@ -81,15 +95,16 @@ export default class ImagePreview {
 
   set options(options) {
     this._options = {
-      rotated: false, // 是否开启旋转
       doubleZoom: 2, // 双击
       maxZoom: 4, // 最大缩放
-      minZoom: 0.5, // 最小缩放
-      longPressDownload: true, // 长按下载
+      minZoom: 1, // 最小缩放
+      longPressDownload: false, // 长按下载
       angled: 0, // 绘制旋转角度
       softX: true, //  遇到边界是否开启过渡动画
       softY: true,
-      tap: null
+      tap: null, // 轻点回调
+      load: null, // 图片加载完成回调
+      err: null // 图片加载失败回调
     };
 
     for (let key in options) {
@@ -104,38 +119,38 @@ export default class ImagePreview {
 
   // 内层图片左上角相对于 ox, oy 的绘制坐标
   get inSx() {
-    return this.sx + (this.dw - this.sw) / 2;
+    return CoordMath.calcCoordWithDiff(this.sx, (this.dw - this.sw) / 2);
   }
 
   get inSy() {
-    return this.sy + (this.dh - this.sh) / 2;
+    return CoordMath.calcCoordWithDiff(this.sy, (this.dh - this.sh) / 2);
   }
 
   // 内层图片左上角的真实坐标
   get realInSx() {
-    return BaseMath.calcRealCoord(this.inSx * this.scale, this.ox);
+    return CoordMath.calcRealCoordAfterScale(this.inSx, this.ox, this.scale);
   }
 
   get realInSy() {
-    return BaseMath.calcRealCoord(this.inSy * this.scale, this.oy)
+    return CoordMath.calcRealCoordAfterScale(this.inSy, this.oy, this.scale);
   }
 
   // 外层图片左上角绘制真实坐标
   get realSx() {
-    return BaseMath.calcRealCoord(this.sx * this.scale, this.ox);
+    return CoordMath.calcRealCoordAfterScale(this.sx, this.ox, this.scale);
   }
 
   get realSy() {
-    return BaseMath.calcRealCoord(this.sy * this.scale, this.oy);
+    return CoordMath.calcRealCoordAfterScale(this.sy, this.oy, this.scale);
   }
 
   // 内层图片左上角真实坐标可移动范围
   get rangeInSx() {
-    return BaseMath.calcRangeCoord(this.sw, this.cw, this.scale);
+    return CoordMath.calcRangeCoord(this.sw, this.cw, this.scale);
   }
 
   get rangeInSy() {
-    return BaseMath.calcRangeCoord(this.sh, this.ch, this.scale);
+    return CoordMath.calcRangeCoord(this.sh, this.ch, this.scale);
   }
 
   _init() {
@@ -231,7 +246,7 @@ export default class ImagePreview {
       dv = toValue - value,
       bt = new Date(),
       _this = this,
-      currentEase = BaseMath.ease;
+      currentEase = CoordMath.ease;
 
     let toTick = function () {
       let dt = new Date() - bt;
@@ -255,95 +270,83 @@ export default class ImagePreview {
   }
 
   _transitionScale(tv, fn) {
-    this._transition('scale', tv, 200, fn);
+    this._transition('scale', tv, 400, fn);
   }
 
   _transitionPan(name, target, fn) {
-    this._transition(name, target, 200, fn);
+    this._transition(name, target, 400, fn);
+  }
+
+  _tap(ev) {
+    clearTimeout(this._tapTimer);
+
+    this._tapTimer = setTimeout(() => {
+      this.options.tap && this.options.tap(ev);
+    }, 200);
   }
 
   _doubleTap(ev) {
-    let middleZoom = (this.options.minZoom + this.options.doubleZoom) / 2;
+    clearTimeout(this._tapTimer);
+
+    let middleZoom = CoordMath.calcAverage(this.options.minZoom, this.options.doubleZoom);
     let nextZoom = this.scale > middleZoom ? this.options.minZoom : this.options.doubleZoom;
 
     if (nextZoom === this.options.doubleZoom) {
       // 点击点映射到坐标系坐标
-      let tx = BaseMath.covertRealCoord(ev.center.x, this.dpr);
-      let ty = BaseMath.covertRealCoord(ev.center.y, this.dpr);
+      let tx = CoordMath.covertRealCoord(ev.center.x, this.dpr);
+      let ty = CoordMath.covertRealCoord(ev.center.y, this.dpr);
 
       // 相对于 tx, ty 作为坐标系时的坐标
-      let relativeInSx = BaseMath.calcRelativeCoord(this.realInSx, tx) / this.scale;
-      let relativeInSy = BaseMath.calcRelativeCoord(this.realInSy, ty) / this.scale;
+      let relativeInSx = CoordMath.calcRelativeCoordBeforeScale(this.realInSx, tx, this.scale);
+      let relativeInSy = CoordMath.calcRelativeCoordBeforeScale(this.realInSy, ty, this.scale);
 
       // 相对于 tx, ty 进行缩放后图片源左上角的坐标
-      let afRealInSx = BaseMath.calcRealCoord(relativeInSx * nextZoom, tx);
-      let afRealInSy = BaseMath.calcRealCoord(relativeInSy * nextZoom, ty);
+      let afRealInSx = CoordMath.calcRealCoordAfterScale(relativeInSx, tx, nextZoom);
+      let afRealInSy = CoordMath.calcRealCoordAfterScale(relativeInSy, ty, nextZoom);
 
       // 缩放后的坐标范围
-      let rangX = BaseMath.calcRangeCoord(this.sw, this.cw, nextZoom);
-      let rangY = BaseMath.calcRangeCoord(this.sh, this.ch, nextZoom);
+      let rangX = CoordMath.calcRangeCoord(this.sw, this.cw, nextZoom);
+      let rangY = CoordMath.calcRangeCoord(this.sh, this.ch, nextZoom);
+
+      let nOx = tx;
 
       if (rangX.min === rangX.max) {
-        tx = this.cw / 2;
+        nOx = this.cw / 2;
       } else {
         if (afRealInSx < rangX.min) {
           // 逆推afRealInSx = rangX.min -> tx
-          tx = (rangX.min - this.realInSx * nextZoom / this.scale) / (1 - nextZoom / this.scale);
+          nOx = (rangX.min - this.realInSx * nextZoom / this.scale) / (1 - nextZoom / this.scale);
         }
 
         if (afRealInSx > rangX.max) {
           // 逆推afRealInSx = rangX.max -> tx
-          tx = (rangX.max - this.realInSx * nextZoom / this.scale) / (1 - nextZoom / this.scale);
+          nOx = (rangX.max - this.realInSx * nextZoom / this.scale) / (1 - nextZoom / this.scale);
         }
       }
 
+      let nOy = ty;
+
       if (rangY.min === rangY.max) {
-        ty = this.ch / 2;
+        nOy = this.ch / 2;
       } else {
         if (afRealInSy < rangY.min) {
-          ty = (rangY.min - this.realInSy * nextZoom / this.scale) / (1 - nextZoom / this.scale);
+          nOy = (rangY.min - this.realInSy * nextZoom / this.scale) / (1 - nextZoom / this.scale);
         }
 
         if (afRealInSy > rangY.max) {
-          ty = (rangY.max - this.realInSy * nextZoom / this.scale) / (1 - nextZoom / this.scale);
+          nOy = (rangY.max - this.realInSy * nextZoom / this.scale) / (1 - nextZoom / this.scale);
         }
       }
 
-      let x = BaseMath.calcRelativeCoord(this.realSx, tx) / this.scale;
-      let y = BaseMath.calcRelativeCoord(this.realSy, ty) / this.scale;
+      let x = CoordMath.calcRelativeCoordBeforeScale(this.realSx, nOx, this.scale);
+      let y = CoordMath.calcRelativeCoordBeforeScale(this.realSy, nOy, this.scale);
 
-      this.ox = tx;
-      this.oy = ty;
-
-      this.sx = x;
-      this.sy = y;
+      this._updateCoord(nOx, nOy, x, y, () => {
+        this._transitionScale(nextZoom);
+      });
     } else {
-      // 现在真实坐标
-      let realSx = this.realSx;
-      let realSy = this.realSy;
-
-      // 初始真实坐标
-      let initSx = this.initSx;
-      let initSy = this.initSy;
-
-      // 计算原点
-      let ox = (initSx * this.scale / this.options.minZoom - realSx) / (this.scale / this.options.minZoom - 1);
-      let oy = (initSy * this.scale / this.options.minZoom - realSy) / (this.scale / this.options.minZoom - 1);
-
-      // 计算相对偏移
-      let x = BaseMath.calcRelativeCoord(initSx, ox) / this.options.minZoom;
-      let y = BaseMath.calcRelativeCoord(initSy, oy) / this.options.minZoom;
-
-      this.ox = ox;
-      this.oy = oy;
-
-      this.sx = x;
-      this.sy = y;
+      this.reset();
     }
-
-    // this.transition(nextZoom, this.ox, this.oy, 300);
-    this._transitionScale(nextZoom, ()=>{
-    });
   }
 
   _panStart(ev) {
@@ -364,34 +367,37 @@ export default class ImagePreview {
     this.lastPanY = endPanY;
 
     // 变化后 inSx, inSy 的实际坐标
-    let afRealInSx = BaseMath.calcRealCoord(this.inSx, this.ox + offsetX);
-    let afRealInSy = BaseMath.calcRealCoord(this.inSy, this.oy + offsetY);
+    let afRealInSx = CoordMath.calcRealCoordAfterScale(this.inSx, this.ox + offsetX, this.scale);
+    let afRealInSy = CoordMath.calcRealCoordAfterScale(this.inSy, this.oy + offsetY, this.scale);
 
     // 当前坐标范围
     let rangX = this.rangeInSx;
     let rangY = this.rangeInSy;
 
-    if (this.options.softX) {
-      this.ox += offsetX;
-    } else if (afRealInSx < rangX.min) {
-      this.ox += offsetX + rangX.min - afRealInSx;
-    } else if (afRealInSx > rangX.max) {
-      this.ox += offsetX - afRealInSx + rangX.max;
+    let ox = this.ox;
+    let oy = this.oy;
+
+    if (this.options.softX || (afRealInSx >= rangX.min && afRealInSx <= rangX.max)) {
+      this.isMoveX = true;
+      // this.ox += offsetX;
+      ox += offsetX;
     } else {
-      this.ox += offsetX;
+      this.isMoveX = false;
     }
 
-    if (this.options.softY) {
-      this.oy += offsetY;
-    } else if (afRealInSy < rangY.min) {
-      this.oy += offsetY + rangY.min - afRealInSy;
-    } else if (afRealInSy > rangY.max) {
-      this.oy += offsetY - afRealInSy + rangY.max;
+    if (this.options.softY || (afRealInSy >= rangY.min && afRealInSy <= rangY.max)) {
+      this.isMoveY = true;
+      // this.oy += offsetY;
+      oy += offsetY;
     } else {
-      this.oy += offsetY;
+      this.isMoveY = false;
     }
+    // this._draw();
 
-    this._draw();
+    this._updateCoord(ox, oy, this.sx, this.sy, () => {
+      this._draw();
+    });
+
     // 阻止默认行为（微信移动时拖动效果）
     ev.preventDefault();
   }
@@ -405,28 +411,27 @@ export default class ImagePreview {
     let ox = this.ox;
     let oy = this.oy;
 
-    if (this.options.softX) {
-      let realInSx = this.realInSx;
-      let rangX = this.rangeInSx;
+    // ox 
+    let realInSx = this.realInSx;
+    let rangX = this.rangeInSx;
 
-      if (realInSx < rangX.min) {
-        ox = this.ox + rangX.min - realInSx;
-      } else if (realInSx > rangX.max) {
-        ox = this.ox + rangX.max - realInSx;
-      }
+    if (realInSx < rangX.min) {
+      ox = this.ox + rangX.min - realInSx;
+    } else if (realInSx > rangX.max) {
+      ox = this.ox + rangX.max - realInSx;
     }
 
-    if (this.options.softY) {
-      let realInSy = this.realInSy;
-      let rangY = this.rangeInSy;
+    // oy
+    let realInSy = this.realInSy;
+    let rangY = this.rangeInSy;
 
-      if (realInSy < rangY.min) {
-        oy = this.oy + rangY.min - realInSy;
-      } else if (realInSy > rangY.max) {
-        oy = this.oy + rangY.max - realInSy;
-      }
+    if (realInSy < rangY.min) {
+      oy = this.oy + rangY.min - realInSy;
+    } else if (realInSy > rangY.max) {
+      oy = this.oy + rangY.max - realInSy;
     }
 
+    // 动画
     if (ox !== this.ox) {
       this._transitionPan('ox', ox);
     }
@@ -440,11 +445,11 @@ export default class ImagePreview {
     let inSx = sx + (this.dw - this.sw) / 2;
     let inSy = sy + (this.dh - this.sh) / 2;
 
-    let realInSx = BaseMath.calcRealCoord(inSx * scale, ox);
-    let realInSy = BaseMath.calcRealCoord(inSy * scale, oy);
+    let realInSx = CoordMath.calcRealCoord(inSx * scale, ox);
+    let realInSy = CoordMath.calcRealCoord(inSy * scale, oy);
 
-    let rangX = BaseMath.calcRangeCoord(this.sw, this.cw, scale);
-    let rangY = BaseMath.calcRangeCoord(this.sh, this.ch, scale);
+    let rangX = CoordMath.calcRangeCoord(this.sw, this.cw, scale);
+    let rangY = CoordMath.calcRangeCoord(this.sh, this.ch, scale);
 
     if (realInSx < rangX.min) {
       realInSx = rangX.min;
@@ -476,8 +481,8 @@ export default class ImagePreview {
       let sy = -this.dh / 2;
 
       // // 外层真实坐标
-      let rightRealSx = BaseMath.calcRealCoord(sx * rightScale, ox);
-      let rightRealSy = BaseMath.calcRealCoord(sy * rightScale, oy);
+      let rightRealSx = CoordMath.calcRealCoord(sx * rightScale, ox);
+      let rightRealSy = CoordMath.calcRealCoord(sy * rightScale, oy);
 
       // x'*r - tx = x; 
       // y'*r - ty = y; 
@@ -496,7 +501,10 @@ export default class ImagePreview {
       this.sx = x;
       this.sy = y;
     } else {
-      let {realSx:rightRealSx , realSy:rightRealSy} = this._calcRealCoord(this.ox, this.oy, this.sx, this.sy, rightScale);
+      let {
+        realSx: rightRealSx,
+        realSy: rightRealSy
+      } = this._calcRealCoord(this.ox, this.oy, this.sx, this.sy, rightScale);
       let x = (rightRealSx - this.realSx) / (rightScale - this.scale);
       let y = (rightRealSy - this.realSy) / (rightScale - this.scale);
 
@@ -507,24 +515,6 @@ export default class ImagePreview {
       this.oy = ty;
       this.sx = x;
       this.sy = y;
-
-      // // 现在真实坐标
-      // let realSx = this.realSx;
-      // let realSy = this.realSy;
-
-      // // 计算原点
-      // let ox = (initSx * this.scale / rightScale - realSx) / (this.scale / rightScale - 1);
-      // let oy = (initSy * this.scale / rightScale - realSy) / (this.scale / rightScale - 1);
-
-      // // 计算相对偏移
-      // let x = BaseMath.calcRelativeCoord(initSx, ox) / rightScale;
-      // let y = BaseMath.calcRelativeCoord(initSy, oy) / rightScale;
-
-      // this.ox = ox;
-      // this.oy = oy;
-
-      // this.sx = x;
-      // this.sy = y;
     }
   }
 
@@ -537,11 +527,11 @@ export default class ImagePreview {
     this.isPinch = true;
 
     // 点击点映射到坐标系坐标
-    let tx = BaseMath.covertRealCoord(ev.center.x, this.dpr);
-    let ty = BaseMath.covertRealCoord(ev.center.y, this.dpr);
+    let tx = CoordMath.covertRealCoord(ev.center.x, this.dpr);
+    let ty = CoordMath.covertRealCoord(ev.center.y, this.dpr);
 
-    let x = BaseMath.calcRelativeCoord(this.realSx, tx) / this.scale;
-    let y = BaseMath.calcRelativeCoord(this.realSy, ty) / this.scale;
+    let x = CoordMath.calcRelativeCoordBeforeScale(this.realSx, tx, this.scale);
+    let y = CoordMath.calcRelativeCoordBeforeScale(this.realSy, ty, this.scale);
 
     this._endPinchScale = ev.scale;
     let offsetScale = this._endPinchScale / this._startPinchScale;
@@ -580,17 +570,52 @@ export default class ImagePreview {
 
   }
 
+  /**
+   * @description 更新坐标系
+   * @param {number} ox 新原点
+   * @param {number} oy 新原点
+   */
+  _updateCoord(ox, oy, sx, sy, fn) {
+    this.ox = ox;
+    this.oy = oy;
+
+    this.sx = sx;
+    this.sy = sy;
+
+    fn && fn();
+  }
+
   // 渲染
-  show(s) {
-    this.imgSrc = s;
+  show() {
+    if (this.sOffCan) {
+      return this.bind();
+    }
+
     let _this = this;
 
     new util.pullImage(this.imgSrc).after((err, imgDom) => {
       if (err) {
+        // 图片加载失败
+        _this.options.err && _this.options.err(err);
         return err;
       }
 
-      let size = BaseMath.calcJustSize(imgDom.width, imgDom.height, _this.cw, _this.ch);
+      // 图片加载完成
+      _this.options.load && _this.options.load(imgDom);
+
+      let size = {};
+      let sOffDrawW = 0;
+      let sOffDrawH = 0;
+
+      if (_this.angle % 90 === 0 && (_this.angle / 90) % 2 !== 0) {
+        size = CoordMath.calcJustSize(imgDom.height, imgDom.width, _this.cw, _this.ch);
+        sOffDrawH = size.w;
+        sOffDrawW = size.h;
+      } else {
+        size = CoordMath.calcJustSize(imgDom.width, imgDom.height, _this.cw, _this.ch);
+        sOffDrawW = size.w;
+        sOffDrawH = size.h;
+      }
 
       // 初始离屏 canvas 大小
       _this.sw = size.w;
@@ -599,18 +624,12 @@ export default class ImagePreview {
       // 绘制原始离屏 canvas
       _this.sOffCan = util.getOffCanvas({
         img: imgDom,
-        sw: size.w,
-        sh: size.h,
+        sw: sOffDrawW,
+        sh: sOffDrawH,
         cw: size.w,
         ch: size.h,
-        rotate: 0
+        rotate: _this.angle
       });
-
-      // if (_this.angle === 90) {
-      //   size = BaseMath.calcJustSize(imgDom.height, imgDom.width, _this.cw, _this.ch);
-      //   _this.sw = size.w;
-      //   _this.sh = size.h;
-      // }
 
       // 真正绘制的离屏 canvas 尺寸
       _this.dw = _this.dh = Math.ceil(
@@ -633,11 +652,11 @@ export default class ImagePreview {
       _this.sx = -_this.dw / 2;
       _this.sy = -_this.dh / 2;
 
-      _this.initSx = BaseMath.calcRealCoord(_this.sx * this.scale, this.ox);
-      _this.initSy = BaseMath.calcRealCoord(_this.sy * this.scale, this.oy);
+      _this.initSx = CoordMath.calcRealCoord(_this.sx * this.scale, this.ox);
+      _this.initSy = CoordMath.calcRealCoord(_this.sy * this.scale, this.oy);
 
       // 长按下载实现
-      if (_this.options.longPressDownload) {
+      if (_this.options.longPressDownload && !util.isPc()) {
         _this._createLongTapImg(imgDom);
       }
 
@@ -658,27 +677,53 @@ export default class ImagePreview {
     });
     // 设置最小相应移动的距离
     this.hammer.get('pan').set({
-      threshold: 0.1
+      threshold: 0
     });
-
-    // 根据配置管理旋转
-    // if(this.DEFAULT_CONFIG.ROTATE){
-    // 	this.hammer.get('rotate').set({ enable: true });
-    // }
   }
 
   bind() {
+    if (this._bind) {
+      return;
+    }
+
+    // 事件绑定
+    this._bind = true;
+
     for (let type in this.events) {
       this.hammer.on(type, this.events[type])
     }
   }
 
   unbind() {
+    // 取消事件绑定
+    this._bind = false;
+
     for (let type in this.events) {
       this.hammer.off(type, this.events[type]);
     }
   }
 
   // 重置变换
-  reset() {}
+  reset() {
+    // 现在真实坐标
+    let realSx = this.realSx;
+    let realSy = this.realSy;
+
+    // 初始真实坐标
+    let initSx = this.initSx;
+    let initSy = this.initSy;
+
+    // 计算原点
+    let ox = (initSx * this.scale / this.options.minZoom - realSx) / (this.scale / this.options.minZoom - 1);
+    let oy = (initSy * this.scale / this.options.minZoom - realSy) / (this.scale / this.options.minZoom - 1);
+
+    // 计算相对偏移
+    let x = CoordMath.calcRelativeCoordBeforeScale(initSx, ox, this.options.minZoom);
+    let y = CoordMath.calcRelativeCoordBeforeScale(initSy, oy, this.options.minZoom);
+
+    // 更新坐标系并绘制
+    this._updateCoord(ox, oy, x, y, () => {
+      this._transitionScale(this.options.minZoom)
+    });
+  }
 }

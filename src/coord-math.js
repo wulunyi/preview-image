@@ -88,3 +88,46 @@ export function calcRangeCoord(inSize, outSize, zoom) {
 export function covertRealCoord(coord, zoom) {
   return coord * zoom;
 }
+
+/**
+ * @description 过渡效果
+ * @param {*} x 
+ */
+export function ease(x) {
+  return Math.sqrt(1 - Math.pow(x - 1, 2));
+};
+
+/**
+ * @description 判读形状
+ * @param {Number} w 宽
+ * @param {Number} h 高
+ * @returns {Number} 1 为宽大于等于高 -1 为高大于等于宽
+ */
+export function calcShape(w, h) {
+  let r = w / h;
+
+  return r >= 1 ? 1 : -1;
+}
+
+/**
+ * @description 适配算法
+ * @param {*} sw 
+ * @param {*} sh 
+ * @param {*} cw 
+ * @param {*} ch 
+ */
+export function calcJustSize(sw, sh, cw, ch) {
+  let shape = calcShape(sw, sh);
+
+  if (shape === 1) {
+    return {
+      w: cw,
+      h: Math.floor((cw / sw) * sh)
+    }
+  }
+
+  return {
+    h: ch,
+    w: Math.floor((ch / sh) * sw)
+  }
+}

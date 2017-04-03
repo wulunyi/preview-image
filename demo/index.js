@@ -7,15 +7,24 @@ rootDom.style.height = document.body.clientHeight + 'px';
 
 let previewImage = new PreviewImage(
   rootDom,
-  'https://si.geilicdn.com/bj-IM-208863409-1490178957617-1610333132.jpg?w=750&h=750', // 图片地址
+  'https://si.geilicdn.com/bj-IM-160326222-1490153471447-1652798769.jpg?w=750&h=750', // 图片地址
   {
-    // rotatable: false, // 是否开启旋转
-    // doubleZoom: 3, // 双击缩放
-    // maxZoom: 4, // 最大缩放
-    // minZoom: 1, // 最小缩放
-    // longPressDownload: true, // 是否长按下载图片
-    // angled: 0, // 初始旋转角度
-    // softX: false // 边界是否开启过渡动画
+    doubleZoom: 2, // 双击
+    maxZoom: 4, // 最大缩放
+    minZoom: 1, // 最小缩放
+    longPressDownload: true, // 长按下载
+    angled: 0, // 绘制旋转角度
+    softX: true, //  遇到边界是否开启过渡动画
+    softY: true,
+    tap: function(){
+      // alert('Tap');
+    },
+    load: function(){
+      // alert('图片加载成功');
+    },
+    err: function(){
+      // alert('图片加载失败');
+    }
   });
 
 previewImage.show();

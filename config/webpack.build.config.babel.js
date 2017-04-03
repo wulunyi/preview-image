@@ -23,11 +23,11 @@ module.exports = {
 	},
 
 	externals: {
-		"alloyfinger": {
-			commonjs: "alloyfinger",
-			commonjs2: "alloyfinger",
-			amd: "alloyfinger",
-			root: "alloyfinger"
+		"hammerjs": {
+			commonjs: "hammerjs",
+			commonjs2: "hammerjs",
+			amd: "hammerjs",
+			root: "hammerjs"
 		}
 	},
 

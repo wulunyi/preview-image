@@ -123,10 +123,10 @@ function getOffCanvas(params) {
   } = params;
   let canvas = document.createElement('canvas');
   let ctx = canvas.getContext('2d');
-  
+
   canvas.width = cw;
   canvas.height = ch;
-  
+
   ctx.translate(cw / 2, ch / 2);
   ctx.rotate(rotate * Math.PI / 180);
 
@@ -135,8 +135,21 @@ function getOffCanvas(params) {
   return canvas;
 }
 
+function isPc() {
+  var userAgentInfo = navigator.userAgent;
+  var Agents = new Array("Android", "iPhone", "SymbianOS", "Windows Phone", "iPad", "iPod");
+  var flag = true;
+  for (var v = 0; v < Agents.length; v++) {
+    if (userAgentInfo.indexOf(Agents[v]) > 0) {
+      flag = false;
+      break;
+    }
+  }
+  return flag;
+}
+
 function toFixed(num) {
-	return Math.floor(num * 100) / 100;
+  return Math.floor(num * 100) / 100;
 }
 
 export {
@@ -146,5 +159,6 @@ export {
   getSize,
   createElement,
   getOffCanvas,
-  toFixed
+  toFixed,
+  isPc
 };

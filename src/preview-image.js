@@ -18,9 +18,9 @@ export default class ImagePreview {
     // dpr
     this.dpr = window.devicePixelRatio || 1;
 
-    // 是否在移动
-    this.isMoveX = true;
-    this.isMoveY = true;
+    // 能否移动
+    this.canMoveX = false;
+    this.canMoveY = false;
 
     // 绘制参数
     this.angle = this.options.angled;
@@ -286,8 +286,9 @@ export default class ImagePreview {
   }
 
   _doubleTap(ev) {
+    // 关闭 tap 回调
     clearTimeout(this._tapTimer);
-
+    
     let middleZoom = CoordMath.calcAverage(this.options.minZoom, this.options.doubleZoom);
     let nextZoom = this.scale > middleZoom ? this.options.minZoom : this.options.doubleZoom;
 
@@ -355,6 +356,11 @@ export default class ImagePreview {
   }
 
   _panMove(ev) {
+    // 若缩放没结束则不掉用
+    if (this.isPinch) {
+      return;
+    }
+
     let endPanX = ev.deltaX;
     let endPanY = ev.deltaY;
 
@@ -378,21 +384,18 @@ export default class ImagePreview {
     let oy = this.oy;
 
     if (this.options.softX || (afRealInSx >= rangX.min && afRealInSx <= rangX.max)) {
-      this.isMoveX = true;
-      // this.ox += offsetX;
+      this.canMoveX = true;
       ox += offsetX;
     } else {
-      this.isMoveX = false;
+      this.canMoveX = false;
     }
 
     if (this.options.softY || (afRealInSy >= rangY.min && afRealInSy <= rangY.max)) {
-      this.isMoveY = true;
-      // this.oy += offsetY;
+      this.canMoveY = true;
       oy += offsetY;
     } else {
-      this.isMoveY = false;
+      this.canMoveY = false;
     }
-    // this._draw();
 
     this._updateCoord(ox, oy, this.sx, this.sy, () => {
       this._draw();
@@ -567,7 +570,6 @@ export default class ImagePreview {
       this.isPinch = false;
       this._panEnd();
     }
-
   }
 
   /**
@@ -682,7 +684,7 @@ export default class ImagePreview {
   }
 
   bind() {
-    if (this._bind) {
+    if (this._bind || !this.sOffCan) {
       return;
     }
 
@@ -695,6 +697,10 @@ export default class ImagePreview {
   }
 
   unbind() {
+    if(!this._bind){
+      return;
+    }
+
     // 取消事件绑定
     this._bind = false;
 

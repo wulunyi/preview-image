@@ -18,11 +18,11 @@ export default class ImagePreview {
     // dpr
     this.dpr = window.devicePixelRatio || 1;
 
-    // 能否移动
+    // x,y 轴上是否有可移动的空间
     this.canMoveX = false;
     this.canMoveY = false;
 
-    // 绘制参数
+    // 图片旋转角度
     this.angle = this.options.angled;
     // 初始化缩放比
     this.scale = this.options.minZoom;
@@ -154,8 +154,9 @@ export default class ImagePreview {
   }
 
   _init() {
+    // 上下文节点不存在将不做任何操作
     if (!this.context) {
-      return;
+      return console.warn('miss context element');
     }
 
     // 获取容器宽高
@@ -224,74 +225,124 @@ export default class ImagePreview {
   _draw() {
     // 擦除上一帧
     this.ctx.clearRect(0, 0, this.cw, this.ch);
-
+    // 保存当前绘制属性设置
     this.ctx.save();
 
+    // 更改坐标系原点
     this.ctx.translate(this.ox, this.oy);
+    // 缩放坐标系
     this.ctx.scale(this.scale, this.scale);
+    // 绘制图片
     this.ctx.drawImage(this.drawCan, this.sx, this.sy, this.dw, this.dh);
 
+    // 恢复当前属性设置
     this.ctx.restore();
   }
 
   /**
    * @description 过渡动画
-   * @param {string} name 
+   * @param {string} property 多度属性
    * @param {number} toValue 
    * @param {number} time 
    * @param {function} endCallback 
    */
-  _transition(name, toValue, time, endCallback) {
-    let value = this[name],
-      dv = toValue - value,
-      bt = new Date(),
-      _this = this,
-      currentEase = CoordMath.ease;
+  _transition(property, toValue, time, endCallback) {
+    // 当前属性值
+    let value = this[property];
+    // 属性变化差
+    let dv = toValue - value;
+    // 动画开始时间
+    let bt = new Date();
+    let _this = this;
+    // 多话过渡效果
+    let currentEase = CoordMath.ease;
 
     let toTick = function () {
       let dt = new Date() - bt;
 
       if (dt >= time) {
-        _this[name] = toValue;
+        _this[property] = toValue;
         _this._draw();
-        cancelAnimationFrame(_this[name + 'tickID']);
+        cancelAnimationFrame(_this[property + 'tickID']);
 
-        _this[name + 'tickID'] = null;
+        _this[property + 'tickID'] = null;
         endCallback && endCallback(11);
         return;
       }
 
-      _this[name] = dv * currentEase(dt / time) + value;
+      _this[property] = dv * currentEase(dt / time) + value;
       _this._draw();
-      _this[name + 'tickID'] = requestAnimationFrame(toTick);
+      _this[property + 'tickID'] = requestAnimationFrame(toTick);
     };
 
     toTick();
   }
 
-  _transitionScale(tv, fn) {
-    this._transition('scale', tv, 400, fn);
+  _transitionScale(toScale, fn) {
+    this._transition('scale', toScale, 400, fn);
   }
 
-  _transitionPan(name, target, fn) {
-    this._transition(name, target, 400, fn);
+  _transitionPan(property, value, fn) {
+    this._transition(property, value, 400, fn);
   }
 
+  /**
+   * @description 用户请点回调
+   * @param {object} ev 事件对象
+   */
   _tap(ev) {
+    // 清除上一次计时
     clearTimeout(this._tapTimer);
 
+    // 重新计时
     this._tapTimer = setTimeout(() => {
       this.options.tap && this.options.tap(ev);
     }, 200);
   }
 
+  // _doubleTapMath(touchCoord, realInCoord, inSize, canvasSize, nextZoom) {
+  //   // 点击点映射到坐标系坐标
+  //   let realTouchCoord = CoordMath.covertRealCoord(touchCoord, this.dpr);
+  //   // 起始内层图片左上角相对于点击点的相对坐标
+  //   let relativeInCoord = CoordMath.calcRelativeCoordBeforeScale(realInCoord, realTouchCoord, this.scale);
+  //   // 缩放后的实际坐标
+  //   let afRealInCoord = CoordMath.calcRealCoordAfterScale(relativeInCoord, realTouchCoord, nextZoom);
+  //   // 根据缩放比计算坐标范围
+  //   let rangCoord = CoordMath.calcRangeCoord(inSize, canvasSize, nextZoom);
+
+  //   // 将点击点作为新坐标原点
+  //   let newOx = realTouchCoord;
+
+  //   if (rangCoord.min === rangCoord.max) {
+  //     newOx = canvasSize / 2;
+  //   } else {
+  //     if (afRealInCoord < rangCoord.min) {
+  //       // 逆推afRealInCoord = rangCoord.min -> newOx
+  //       newOx = (rangCoord.min - realInCoord * nextZoom / this.scale) / (1 - nextZoom / this.scale);
+  //     }
+
+  //     if (afRealInCoord > rangCoord.max) {
+  //       // 逆推afRealInCoord = rangCoord.max -> newOx
+  //       newOx = (rangCoord.max - realInCoord * nextZoom / this.scale) / (1 - nextZoom / this.scale);
+  //     }
+  //   }
+
+  //   return newOx;
+  // }
+
+  /**
+   * @description 用户双击操作 (缩放)
+   * @param {object} ev 事件对象
+   */
   _doubleTap(ev) {
     // 关闭 tap 回调
     clearTimeout(this._tapTimer);
-    
+
+    // 计算下一次缩放比
     let middleZoom = CoordMath.calcAverage(this.options.minZoom, this.options.doubleZoom);
     let nextZoom = this.scale > middleZoom ? this.options.minZoom : this.options.doubleZoom;
 
+    // 如果是放大
     if (nextZoom === this.options.doubleZoom) {
       // 点击点映射到坐标系坐标
       let tx = CoordMath.covertRealCoord(ev.center.x, this.dpr);
@@ -338,6 +389,9 @@ export default class ImagePreview {
           nOy = (rangY.max - this.realInSy * nextZoom / this.scale) / (1 - nextZoom / this.scale);
         }
       }
+
+      // let nOx = this._doubleTapMath(ev.center.x, this.realInSx, this.sw, this.cw, nextZoom);
+      // let nOy = this._doubleTapMath(ev.center.y, this.realInSy, this.sh, this.ch, nextZoom);
 
       let x = CoordMath.calcRelativeCoordBeforeScale(this.realSx, nOx, this.scale);
       let y = CoordMath.calcRelativeCoordBeforeScale(this.realSy, nOy, this.scale);
@@ -589,12 +643,16 @@ export default class ImagePreview {
 
   // 渲染
   show() {
-    if (this.sOffCan) {
+    // 已经完成绘制则掉用与掉用 bind() 为同一目的
+    if (!this.context) {
+      return console.warn('miss contenx element');
+    } else if (this.sOffCan) {
       return this.bind();
     }
 
     let _this = this;
 
+    // 拉取图片
     new util.pullImage(this.imgSrc).after((err, imgDom) => {
       if (err) {
         // 图片加载失败
@@ -664,19 +722,24 @@ export default class ImagePreview {
 
       // 绘制初始值
       _this._draw();
+
+      // 开启事件
       _this.bind();
     });
 
     // 创建手势实例
     this.hammer = new Hammer(this.context);
+
     // 开启缩放手势
     this.hammer.get('pinch').set({
       enable: true
     });
+
     // 设置双击偏差范围
     this.hammer.get('doubletap').set({
       posThreshold: 60
     });
+
     // 设置最小相应移动的距离
     this.hammer.get('pan').set({
       threshold: 0
@@ -697,7 +760,7 @@ export default class ImagePreview {
   }
 
   unbind() {
-    if(!this._bind){
+    if (!this._bind || !this.sOffCan) {
       return;
     }
 

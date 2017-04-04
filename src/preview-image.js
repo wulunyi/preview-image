@@ -300,35 +300,40 @@ export default class ImagePreview {
     }, 200);
   }
 
-  // _doubleTapMath(touchCoord, realInCoord, inSize, canvasSize, nextZoom) {
-  //   // 点击点映射到坐标系坐标
-  //   let realTouchCoord = CoordMath.covertRealCoord(touchCoord, this.dpr);
-  //   // 起始内层图片左上角相对于点击点的相对坐标
-  //   let relativeInCoord = CoordMath.calcRelativeCoordBeforeScale(realInCoord, realTouchCoord, this.scale);
-  //   // 缩放后的实际坐标
-  //   let afRealInCoord = CoordMath.calcRealCoordAfterScale(relativeInCoord, realTouchCoord, nextZoom);
-  //   // 根据缩放比计算坐标范围
-  //   let rangCoord = CoordMath.calcRangeCoord(inSize, canvasSize, nextZoom);
+  _doubleTapMath(touchCoord, realInCoord, realCoord, inSize, canvasSize, nextZoom) {
+    // 点击点映射到坐标系坐标
+    let realTouchCoord = CoordMath.covertRealCoord(touchCoord, this.dpr);
+    // 起始内层图片左上角相对于点击点的相对坐标
+    let relativeInCoord = CoordMath.calcRelativeCoordBeforeScale(realInCoord, realTouchCoord, this.scale);
+    // 缩放后的实际坐标
+    let afRealInCoord = CoordMath.calcRealCoordAfterScale(relativeInCoord, realTouchCoord, nextZoom);
+    // 根据缩放比计算坐标范围
+    let rangCoord = CoordMath.calcRangeCoord(inSize, canvasSize, nextZoom);
 
-  //   // 将点击点作为新坐标原点
-  //   let newOx = realTouchCoord;
+    // 将点击点作为新坐标原点
+    let newOrigin = realTouchCoord;
 
-  //   if (rangCoord.min === rangCoord.max) {
-  //     newOx = canvasSize / 2;
-  //   } else {
-  //     if (afRealInCoord < rangCoord.min) {
-  //       // 逆推afRealInCoord = rangCoord.min -> newOx
-  //       newOx = (rangCoord.min - realInCoord * nextZoom / this.scale) / (1 - nextZoom / this.scale);
-  //     }
+    if (rangCoord.min === rangCoord.max) {
+      newOrigin = canvasSize / 2;
+    } else {
+      if (afRealInCoord < rangCoord.min) {
+        // 逆推afRealInCoord = rangCoord.min -> newOx
+        newOrigin = (rangCoord.min - realInCoord * nextZoom / this.scale) / (1 - nextZoom / this.scale);
+      }
 
-  //     if (afRealInCoord > rangCoord.max) {
-  //       // 逆推afRealInCoord = rangCoord.max -> newOx
-  //       newOx = (rangCoord.max - realInCoord * nextZoom / this.scale) / (1 - nextZoom / this.scale);
-  //     }
-  //   }
+      if (afRealInCoord > rangCoord.max) {
+        // 逆推afRealInCoord = rangCoord.max -> newOx
+        newOrigin = (rangCoord.max - realInCoord * nextZoom / this.scale) / (1 - nextZoom / this.scale);
+      }
+    }
 
-  //   return newOx;
-  // }
+    let relativeCoord = CoordMath.calcRelativeCoordBeforeScale(realCoord, newOrigin, this.scale);
+
+    return {
+      origin: newOrigin,
+      sCoord: relativeCoord
+    };
+  }
 
   /**
    * @description 用户双击操作 (缩放)
@@ -344,59 +349,59 @@ export default class ImagePreview {
 
     // 如果是放大
     if (nextZoom === this.options.doubleZoom) {
-      // 点击点映射到坐标系坐标
-      let tx = CoordMath.covertRealCoord(ev.center.x, this.dpr);
-      let ty = CoordMath.covertRealCoord(ev.center.y, this.dpr);
+      // // 点击点映射到坐标系坐标
+      // let tx = CoordMath.covertRealCoord(ev.center.x, this.dpr);
+      // let ty = CoordMath.covertRealCoord(ev.center.y, this.dpr);
 
-      // 相对于 tx, ty 作为坐标系时的坐标
-      let relativeInSx = CoordMath.calcRelativeCoordBeforeScale(this.realInSx, tx, this.scale);
-      let relativeInSy = CoordMath.calcRelativeCoordBeforeScale(this.realInSy, ty, this.scale);
+      // // 相对于 tx, ty 作为坐标系时的坐标
+      // let relativeInSx = CoordMath.calcRelativeCoordBeforeScale(this.realInSx, tx, this.scale);
+      // let relativeInSy = CoordMath.calcRelativeCoordBeforeScale(this.realInSy, ty, this.scale);
 
-      // 相对于 tx, ty 进行缩放后图片源左上角的坐标
-      let afRealInSx = CoordMath.calcRealCoordAfterScale(relativeInSx, tx, nextZoom);
-      let afRealInSy = CoordMath.calcRealCoordAfterScale(relativeInSy, ty, nextZoom);
+      // // 相对于 tx, ty 进行缩放后图片源左上角的坐标
+      // let afRealInSx = CoordMath.calcRealCoordAfterScale(relativeInSx, tx, nextZoom);
+      // let afRealInSy = CoordMath.calcRealCoordAfterScale(relativeInSy, ty, nextZoom);
 
-      // 缩放后的坐标范围
-      let rangX = CoordMath.calcRangeCoord(this.sw, this.cw, nextZoom);
-      let rangY = CoordMath.calcRangeCoord(this.sh, this.ch, nextZoom);
+      // // 缩放后的坐标范围
+      // let rangX = CoordMath.calcRangeCoord(this.sw, this.cw, nextZoom);
+      // let rangY = CoordMath.calcRangeCoord(this.sh, this.ch, nextZoom);
 
-      let nOx = tx;
+      // let nOx = tx;
 
-      if (rangX.min === rangX.max) {
-        nOx = this.cw / 2;
-      } else {
-        if (afRealInSx < rangX.min) {
-          // 逆推afRealInSx = rangX.min -> tx
-          nOx = (rangX.min - this.realInSx * nextZoom / this.scale) / (1 - nextZoom / this.scale);
-        }
+      // if (rangX.min === rangX.max) {
+      //   nOx = this.cw / 2;
+      // } else {
+      //   if (afRealInSx < rangX.min) {
+      //     // 逆推afRealInSx = rangX.min -> tx
+      //     nOx = (rangX.min - this.realInSx * nextZoom / this.scale) / (1 - nextZoom / this.scale);
+      //   }
 
-        if (afRealInSx > rangX.max) {
-          // 逆推afRealInSx = rangX.max -> tx
-          nOx = (rangX.max - this.realInSx * nextZoom / this.scale) / (1 - nextZoom / this.scale);
-        }
-      }
+      //   if (afRealInSx > rangX.max) {
+      //     // 逆推afRealInSx = rangX.max -> tx
+      //     nOx = (rangX.max - this.realInSx * nextZoom / this.scale) / (1 - nextZoom / this.scale);
+      //   }
+      // }
 
-      let nOy = ty;
+      // let nOy = ty;
 
-      if (rangY.min === rangY.max) {
-        nOy = this.ch / 2;
-      } else {
-        if (afRealInSy < rangY.min) {
-          nOy = (rangY.min - this.realInSy * nextZoom / this.scale) / (1 - nextZoom / this.scale);
-        }
+      // if (rangY.min === rangY.max) {
+      //   nOy = this.ch / 2;
+      // } else {
+      //   if (afRealInSy < rangY.min) {
+      //     nOy = (rangY.min - this.realInSy * nextZoom / this.scale) / (1 - nextZoom / this.scale);
+      //   }
 
-        if (afRealInSy > rangY.max) {
-          nOy = (rangY.max - this.realInSy * nextZoom / this.scale) / (1 - nextZoom / this.scale);
-        }
-      }
+      //   if (afRealInSy > rangY.max) {
+      //     nOy = (rangY.max - this.realInSy * nextZoom / this.scale) / (1 - nextZoom / this.scale);
+      //   }
+      // }
 
-      // let nOx = this._doubleTapMath(ev.center.x, this.realInSx, this.sw, this.cw, nextZoom);
-      // let nOy = this._doubleTapMath(ev.center.y, this.realInSy, this.sh, this.ch, nextZoom);
+      // let x = CoordMath.calcRelativeCoordBeforeScale(this.realSx, nOx, this.scale);
+      // let y = CoordMath.calcRelativeCoordBeforeScale(this.realSy, nOy, this.scale);
 
-      let x = CoordMath.calcRelativeCoordBeforeScale(this.realSx, nOx, this.scale);
-      let y = CoordMath.calcRelativeCoordBeforeScale(this.realSy, nOy, this.scale);
-
-      this._updateCoord(nOx, nOy, x, y, () => {
+      let newDrawX = this._doubleTapMath(ev.center.x, this.realInSx, this.realSx, this.sw, this.cw, nextZoom);
+      let newDrawY = this._doubleTapMath(ev.center.y, this.realInSy, this.realSy, this.sh, this.ch, nextZoom);
+      
+      this._updateCoord(newDrawX.origin, newDrawY.origin, newDrawX.sCoord, newDrawY.sCoord, () => {
         this._transitionScale(nextZoom);
       });
     } else {

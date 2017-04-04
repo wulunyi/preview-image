@@ -2,7 +2,7 @@
   "name": "preview-image",
   "version": "1.0.0",
   "description": "## 简介",
-  "main": "index.js",
+  "main": "./lib/preview-image.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "webpack-dev-server --env=dev --progress --inline --colors",

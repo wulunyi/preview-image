@@ -747,7 +747,7 @@ export default class ImagePreview {
 
     // 设置最小相应移动的距离
     this.hammer.get('pan').set({
-      threshold: 0
+      threshold: 0.1
     });
   }
 

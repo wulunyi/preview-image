@@ -103,11 +103,11 @@ export function ease(x) {
  * @param {Number} h 高
  * @returns {Number} 1 为宽大于等于高 -1 为高大于等于宽
  */
-export function calcShape(w, h) {
-  let r = w / h;
+// export function calcShape(w, h) {
+//   let r = w / h;
 
-  return r >= 1 ? 1 : -1;
-}
+//   return r >= 1 ? 1 : -1;
+// }
 
 /**
  * @description 适配算法
@@ -117,7 +117,14 @@ export function calcShape(w, h) {
  * @param {*} ch 
  */
 export function calcJustSize(sw, sh, cw, ch) {
-  let shape = calcShape(sw, sh);
+  // let shape = calcShape(sw, sh);
+  let shape = 1;
+  
+  if(sw / sh < cw/ ch){
+    shape = -1;
+  }else{
+    shape = 1;
+  }
 
   if (shape === 1) {
     return {

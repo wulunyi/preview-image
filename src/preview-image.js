@@ -667,7 +667,7 @@ export default class ImagePreview {
 
       // 图片加载完成
       _this.options.load && _this.options.load(imgDom);
-
+    
       let size = {};
       let sOffDrawW = 0;
       let sOffDrawH = 0;

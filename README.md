@@ -51,3 +51,12 @@
 
 ### reset()
 重置为初始状态
+
+## demo
+```shell
+  git clone ...
+
+  cd preview-image
+  npm install
+  npm run dev
+```

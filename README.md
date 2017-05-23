@@ -12,7 +12,8 @@
 
 ## 使用
 ```javascript
-  var PreviewImage = require("preview-image");
+  var PreviewImage = require("preview-image").default;
+  
   // 配置选项
   var options = {
     doubleZoom: 2, // 双击缩放比 default 2

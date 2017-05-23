@@ -163,9 +163,16 @@ export default class ImagePreview {
     let size = util.getSize(this.context);
 
     // 设置元素样式相对定位便于 canvas 的定位
-    util.setStyle(this.context, {
-      position: 'relative'
-    });
+    let style = util.getStyle(this.context);
+
+    if(style.position === 'static'){
+      util.setStyle(this.context, {
+        position: 'relative'
+      });
+    };
+    // util.setStyle(this.context, {
+    //   position: 'relative'
+    // });
 
     // 绘制面板覆盖上下文元素
     this.canvas = util.createElement('canvas', {

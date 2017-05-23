@@ -152,6 +152,12 @@ function toFixed(num) {
   return Math.floor(num * 100) / 100;
 }
 
+function getStyle(dom){
+  return window.getComputedStyle ? 
+	window.getComputedStyle(dom, "") : 
+	dom.currentStyle;
+}
+
 export {
   isDom,
   setStyle,
@@ -160,5 +166,6 @@ export {
   createElement,
   getOffCanvas,
   toFixed,
-  isPc
+  isPc,
+  getStyle
 };

@@ -205,6 +205,11 @@ export default class ImagePreview {
 
     // 绘制上下文
     this.ctx = this.canvas.getContext('2d');
+
+    // context 在屏幕的位置
+    const boundData = this.context.getBoundingClientRect();
+    this.screenX = boundData.left;
+    this.screenY = boundData.top;
   }
 
   /**
@@ -404,9 +409,13 @@ export default class ImagePreview {
 
       // let x = CoordMath.calcRelativeCoordBeforeScale(this.realSx, nOx, this.scale);
       // let y = CoordMath.calcRelativeCoordBeforeScale(this.realSy, nOy, this.scale);
+      let touchX = ev.center.x - this.screenX;
+      let touchY = ev.center.y - this.screenY;
 
-      let newDrawX = this._doubleTapMath(ev.center.x, this.realInSx, this.realSx, this.sw, this.cw, nextZoom);
-      let newDrawY = this._doubleTapMath(ev.center.y, this.realInSy, this.realSy, this.sh, this.ch, nextZoom);
+      // let newDrawX = this._doubleTapMath(ev.center.x, this.realInSx, this.realSx, this.sw, this.cw, nextZoom);
+      // let newDrawY = this._doubleTapMath(ev.center.y, this.realInSy, this.realSy, this.sh, this.ch, nextZoom);
+      let newDrawX = this._doubleTapMath(touchX, this.realInSx, this.realSx, this.sw, this.cw, nextZoom);
+      let newDrawY = this._doubleTapMath(touchY, this.realInSy, this.realSy, this.sh, this.ch, nextZoom);
       
       this._updateCoord(newDrawX.origin, newDrawY.origin, newDrawX.sCoord, newDrawY.sCoord, () => {
         this._transitionScale(nextZoom);
@@ -596,8 +605,11 @@ export default class ImagePreview {
     this.isPinch = true;
 
     // 点击点映射到坐标系坐标
-    let tx = CoordMath.covertRealCoord(ev.center.x, this.dpr);
-    let ty = CoordMath.covertRealCoord(ev.center.y, this.dpr);
+    let touchX = ev.center.x - this.screenX;
+    let touchY = ev.center.y - this.screenY;
+
+    let tx = CoordMath.covertRealCoord(touchX, this.dpr);
+    let ty = CoordMath.covertRealCoord(touchY, this.dpr);
 
     let x = CoordMath.calcRelativeCoordBeforeScale(this.realSx, tx, this.scale);
     let y = CoordMath.calcRelativeCoordBeforeScale(this.realSy, ty, this.scale);
@@ -728,7 +740,7 @@ export default class ImagePreview {
       _this.initSy = CoordMath.calcRealCoord(_this.sy * this.scale, this.oy);
 
       // 长按下载实现
-      if (_this.options.longPressDownload && !util.isPc()) {
+      if (_this.options.longPressDownload /*&& !util.isPc()*/) {
         _this._createLongTapImg(imgDom);
       }
 

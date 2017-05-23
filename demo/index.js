@@ -2,8 +2,8 @@ import './index.scss';
 import PreviewImage from '../src/preview-image';
 
 let rootDom = document.getElementsByClassName('app')[0];
-rootDom.style.width = document.body.clientWidth + 'px';
-rootDom.style.height = document.body.clientHeight + 'px';
+// rootDom.style.width = document.body.clientWidth + 'px';
+// rootDom.style.height = document.body.clientHeight + 'px';
 
 let previewImage = new PreviewImage(
   rootDom,

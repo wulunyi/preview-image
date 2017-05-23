@@ -228,6 +228,9 @@ export default class ImagePreview {
       height: '100%'
     });
 
+    // 不可拖动
+    imgDom.draggable = false;
+    
     this.context.appendChild(imgDom);
   }
 

@@ -801,6 +801,10 @@ export default class ImagePreview {
 
   // 重置变换
   reset() {
+    if(this.scale === this.options.minZoom) {
+      return;
+    }
+    
     // 现在真实坐标
     let realSx = this.realSx;
     let realSy = this.realSy;

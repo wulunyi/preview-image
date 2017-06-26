@@ -207,11 +207,23 @@ export default class ImagePreview {
     this.ctx = this.canvas.getContext('2d');
 
     // context 在屏幕的位置
+    // const boundData = this.context.getBoundingClientRect();
+    //相对于屏幕 元素左上角的坐标
+    // this.screenX = boundData.left;
+    // this.screenY = boundData.top;
+    this._checkPosition();
+  }
+
+  /**
+   * 检查元素在屏幕的位置
+   */
+  _checkPosition() {
+    // context 在屏幕的位置
     const boundData = this.context.getBoundingClientRect();
+    //相对于屏幕 元素左上角的坐标
     this.screenX = boundData.left;
     this.screenY = boundData.top;
   }
-
   /**
    * @description 创建长按下载图片
    * @param {*} imgDom 

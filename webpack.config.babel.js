@@ -22,7 +22,7 @@ module.exports = {
 	},
 
 	resolve: {
-		extensions: ['.js', '.json', '.scss'],
+		extensions: ['.js', '.json', '.scss', '.ts'],
 		modules   : ['node_modules', SRC_PATH],
 		alias     : {
 			styles: path.join(SRC_PATH, 'styles'),
@@ -40,6 +40,14 @@ module.exports = {
 				exclude: path.resolve('node_modules'),
 				use: [
 					{loader: 'babel-loader'}
+				]
+			},
+			{
+				test: /\.ts$/,
+				exclude: path.resolve('node_modules'),
+				use: [
+					{loader: 'babel-loader'},
+					{loader: 'awesome-typescript-loader'}
 				]
 			},
 			{

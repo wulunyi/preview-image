@@ -1,13 +1,19 @@
-# 图片预览组件——H5
+# H5 单图预览
 
 ## 简介
 
-   图片预览组件，采用 hammerjs 作为事件库，结合 canvas 图片绘制能力，提供对 PC 和 H5 浏览器端对图片的预览操作（双击、放大、移动）。
+采用 canvas 实现在 H5 端对于图片的预览，功能类似于 QQ 和微信浏览器图片预览功能
+### 功能列表
+
++ 双指缩放
++ 双击缩放
++ 移动
+
 
 ## 安装
 
 ```shell
-  npm install hammerjs preview-image --save
+  npm install preview-image --save
 ```
 
 ## 使用
